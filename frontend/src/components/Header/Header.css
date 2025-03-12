@@ -1,0 +1,19 @@
+.logo {
+    height: 40px;
+    margin-left: 10px;  
+    border-radius: 10px;
+}
+
+.header-container {
+    display: flex;
+    align-items: center;        
+    padding: 10px; /* Add some padding for spacing */
+}
+
+.user-profile-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}

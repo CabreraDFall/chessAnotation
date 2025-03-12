@@ -1,0 +1,48 @@
+.chess-board-body{
+    padding: 20px 0;
+}
+.chess-board-cell {
+    width: 39px;
+    height: 39px;
+    
+}
+.chess-board-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    
+    
+}
+
+.chess-board-cell.white {
+    background-color: #ECEBEC; 
+
+}
+
+.chess-board-cell.black {
+    background-color: #373956;
+   
+}
+
+.chess-piece {
+    font-size: 28px;
+    user-select: none;
+}
+
+.chess-board-cell.selected {
+    background-color: rgba(255, 255, 0, 0.3);
+}
+
+.chess-board-cell:hover {
+    cursor: pointer;
+    background-color: rgba(255, 255, 0, 0.2);
+}
+
+.white-piece {
+    color: white;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.black-piece {
+    color: black;
+}
