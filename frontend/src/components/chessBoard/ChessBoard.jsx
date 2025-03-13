@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './ChessBoard.css';
 
 const ChessBoard = ({ onMove }) => {
@@ -26,12 +26,31 @@ const ChessBoard = ({ onMove }) => {
         blackRookAMoved: false,
         blackRookHMoved: false
     });
+    const [gameStatus, setGameStatus] = useState('active'); // 'active', 'check', 'checkmate'
     
     // Helper function to check if a piece is white
     const isWhitePiece = (piece) => piece && piece.toUpperCase() === piece;
     
-    // Check if a move is valid for a specific piece
-    const isValidMove = (fromRow, fromCol, toRow, toCol) => {
+    // Modified isSquareUnderAttack to prevent infinite recursion
+    const isSquareUnderAttack = (row, col, byWhite, ignorePiece = null) => {
+        for (let fromRow = 0; fromRow < 8; fromRow++) {
+            for (let fromCol = 0; fromCol < 8; fromCol++) {
+                const piece = board[fromRow][fromCol];
+                if (!piece || isWhitePiece(piece) !== byWhite || 
+                    (ignorePiece && fromRow === ignorePiece.row && fromCol === ignorePiece.col)) {
+                    continue;
+                }
+                
+                if (isValidBasicMove(fromRow, fromCol, row, col)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    // Add new helper function for basic move validation (without check validation)
+    const isValidBasicMove = (fromRow, fromCol, toRow, toCol) => {
         const piece = board[fromRow][fromCol];
         const targetPiece = board[toRow][toCol];
         
@@ -92,7 +111,135 @@ const ChessBoard = ({ onMove }) => {
                 return false;
         }
     };
-    
+
+    // Modify isValidMove to include check validation
+    const isValidMove = (fromRow, fromCol, toRow, toCol) => {
+        // First check if the move is valid according to piece rules
+        if (!isValidBasicMove(fromRow, fromCol, toRow, toCol)) {
+            console.log('Failed basic move validation');
+            return false;
+        }
+
+        // Make temporary move and check if it leaves own king in check
+        const tempBoard = board.map(row => [...row]);
+        const movingPiece = tempBoard[fromRow][fromCol];
+        tempBoard[toRow][toCol] = movingPiece;
+        tempBoard[fromRow][fromCol] = '';
+
+        // Find king's position
+        const isWhite = isWhitePiece(movingPiece);
+        let kingPos;
+        if (movingPiece.toUpperCase() === 'K') {
+            kingPos = { row: toRow, col: toCol };
+        } else {
+            // Find king position on the temporary board
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if (tempBoard[row][col] === (isWhite ? 'K' : 'k')) {
+                        kingPos = { row, col };
+                        break;
+                    }
+                }
+                if (kingPos) break;
+            }
+        }
+
+        // Check if the king is still in check after the move
+        const stillInCheck = isKingInCheckOnBoard(kingPos.row, kingPos.col, !isWhite, tempBoard);
+
+        if (stillInCheck) {
+            console.log('Move leaves king in check');
+            return false;
+        }
+
+        return true;
+    };
+
+    // Add new helper function to check king in check on a specific board
+    const isKingInCheckOnBoard = (row, col, byWhite, testBoard) => {
+        for (let fromRow = 0; fromRow < 8; fromRow++) {
+            for (let fromCol = 0; fromCol < 8; fromCol++) {
+                const piece = testBoard[fromRow][fromCol];
+                if (!piece || isWhitePiece(piece) !== byWhite) {
+                    continue;
+                }
+                
+                if (isValidBasicMoveOnBoard(fromRow, fromCol, row, col, testBoard)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    // Add helper function for basic move validation on a specific board
+    const isValidBasicMoveOnBoard = (fromRow, fromCol, toRow, toCol, testBoard) => {
+        const piece = testBoard[fromRow][fromCol];
+        const targetPiece = testBoard[toRow][toCol];
+        
+        // Can't capture your own pieces
+        if (targetPiece && isWhitePiece(targetPiece) === isWhitePiece(piece)) {
+            return false;
+        }
+        
+        const pieceType = piece.toUpperCase();
+        const deltaRow = Math.abs(toRow - fromRow);
+        const deltaCol = Math.abs(toCol - fromCol);
+        
+        switch (pieceType) {
+            case 'P': // Pawn
+                const direction = isWhitePiece(piece) ? -1 : 1;
+                const startRow = isWhitePiece(piece) ? 6 : 1;
+                
+                if (fromCol === toCol && !targetPiece) {
+                    if (toRow === fromRow + direction) return true;
+                    if (fromRow === startRow && toRow === fromRow + 2 * direction && 
+                        !testBoard[fromRow + direction][fromCol]) {
+                        return true;
+                    }
+                }
+                return Math.abs(fromCol - toCol) === 1 && toRow === fromRow + direction && targetPiece;
+                
+            case 'R': // Rook
+                return (fromRow === toRow || fromCol === toCol) && 
+                       !hasObstaclesOnBoard(fromRow, fromCol, toRow, toCol, testBoard);
+                
+            case 'N': // Knight
+                return (deltaRow === 2 && deltaCol === 1) || (deltaRow === 1 && deltaCol === 2);
+                
+            case 'B': // Bishop
+                return deltaRow === deltaCol && 
+                       !hasObstaclesOnBoard(fromRow, fromCol, toRow, toCol, testBoard);
+                
+            case 'Q': // Queen
+                return (fromRow === toRow || fromCol === toCol || deltaRow === deltaCol) && 
+                       !hasObstaclesOnBoard(fromRow, fromCol, toRow, toCol, testBoard);
+                
+            case 'K': // King
+                return deltaRow <= 1 && deltaCol <= 1;
+                
+            default:
+                return false;
+        }
+    };
+
+    // Add helper function to check obstacles on a specific board
+    const hasObstaclesOnBoard = (fromRow, fromCol, toRow, toCol, testBoard) => {
+        const rowStep = fromRow === toRow ? 0 : (toRow - fromRow) / Math.abs(toRow - fromRow);
+        const colStep = fromCol === toCol ? 0 : (toCol - fromCol) / Math.abs(toCol - fromCol);
+        
+        let currentRow = fromRow + rowStep;
+        let currentCol = fromCol + colStep;
+        
+        while (currentRow !== toRow || currentCol !== toCol) {
+            if (testBoard[currentRow][currentCol]) return true;
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+        
+        return false;
+    };
+
     // Check if there are pieces between source and destination
     const hasObstacles = (fromRow, fromCol, toRow, toCol) => {
         const rowStep = fromRow === toRow ? 0 : (toRow - fromRow) / Math.abs(toRow - fromRow);
@@ -161,6 +308,98 @@ const ChessBoard = ({ onMove }) => {
             return true;
         }
         return false;
+    };
+
+    // Add new function to check if a player has any legal moves to get out of check
+    const hasLegalMovesOutOfCheck = (isWhiteKing) => {
+        const kingPos = findKing(isWhiteKing);
+        
+        // 1. Try all possible king moves
+        const directions = [
+            [-1,-1], [-1,0], [-1,1],
+            [0,-1],          [0,1],
+            [1,-1],  [1,0],  [1,1]
+        ];
+        
+        // Check if king can move to safety
+        for (const [dx, dy] of directions) {
+            const newRow = kingPos.row + dx;
+            const newCol = kingPos.col + dy;
+            if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                if (isValidMove(kingPos.row, kingPos.col, newRow, newCol)) {
+                    return true;
+                }
+            }
+        }
+
+        // 2. Find all attacking pieces
+        const attackers = findAttackingPieces(kingPos.row, kingPos.col, !isWhiteKing);
+        
+        if (attackers.length === 1) {
+            const attacker = attackers[0];
+            
+            // Try every piece's move
+            for (let fromRow = 0; fromRow < 8; fromRow++) {
+                for (let fromCol = 0; fromCol < 8; fromCol++) {
+                    const piece = board[fromRow][fromCol];
+                    if (!piece || isWhitePiece(piece) !== isWhiteKing) continue;
+                    
+                    // Try capturing the attacker
+                    if (isValidMove(fromRow, fromCol, attacker.row, attacker.col)) {
+                        return true;
+                    }
+                    
+                    // Try blocking the check
+                    const blockSquares = getSquaresBetween(attacker.row, attacker.col, kingPos.row, kingPos.col);
+                    for (const square of blockSquares) {
+                        if (isValidMove(fromRow, fromCol, square.row, square.col)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    };
+
+    // Helper function to find all pieces attacking a square
+    const findAttackingPieces = (row, col, byWhite) => {
+        const attackers = [];
+        for (let fromRow = 0; fromRow < 8; fromRow++) {
+            for (let fromCol = 0; fromCol < 8; fromCol++) {
+                const piece = board[fromRow][fromCol];
+                if (piece && isWhitePiece(piece) === byWhite) {
+                    if (isValidBasicMove(fromRow, fromCol, row, col)) {
+                        attackers.push({ row: fromRow, col: fromCol, piece });
+                    }
+                }
+            }
+        }
+        return attackers;
+    };
+
+    // Helper function to get all squares between two positions (improved version)
+    const getSquaresBetween = (fromRow, fromCol, toRow, toCol) => {
+        const squares = [];
+        
+        // Calculate steps
+        const rowDiff = toRow - fromRow;
+        const colDiff = toCol - fromCol;
+        const rowStep = rowDiff === 0 ? 0 : rowDiff / Math.abs(rowDiff);
+        const colStep = colDiff === 0 ? 0 : colDiff / Math.abs(colDiff);
+        
+        let currentRow = fromRow + rowStep;
+        let currentCol = fromCol + colStep;
+        
+        // Collect all squares between start and end positions
+        while (currentRow !== toRow || currentCol !== toCol) {
+            squares.push({ row: currentRow, col: currentCol });
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+        
+        return squares;
     };
 
     const handleCellClick = (rowIndex, colIndex) => {
@@ -234,6 +473,23 @@ const ChessBoard = ({ onMove }) => {
                 // Update board and switch turns
                 setBoard(newBoard);
                 setIsWhiteTurn(!isWhiteTurn);
+
+                // Add check detection
+                const oppositeKingPos = findKing(!isWhiteTurn);
+                if (isSquareUnderAttack(oppositeKingPos.row, oppositeKingPos.col, isWhiteTurn)) {
+                    console.log('Check!');
+                    
+                    // Check for checkmate
+                    if (!hasLegalMovesOutOfCheck(!isWhiteTurn)) {
+                        console.log('Checkmate!');
+                        setGameStatus('checkmate');
+                    } else {
+                        setGameStatus('check');
+                    }
+                } else {
+                    setGameStatus('active');
+                }
+
                 if (onMove) onMove(toChessNotation(rowIndex, colIndex));
             }
             setSelectedPiece(null);
@@ -260,25 +516,74 @@ const ChessBoard = ({ onMove }) => {
         return null;
     };
 
-    // Add this function to check if a square is under attack
-    const isSquareUnderAttack = (row, col, byWhite) => {
-        for (let fromRow = 0; fromRow < 8; fromRow++) {
-            for (let fromCol = 0; fromCol < 8; fromCol++) {
-                const piece = board[fromRow][fromCol];
-                if (piece && isWhitePiece(piece) === byWhite) {
-                    if (isValidMove(fromRow, fromCol, row, col)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    };
-
-    // Add this function to check if the king is in check
+    // Check if the king is in check
     const isKingInCheck = (row, col, isWhiteKing = isWhiteTurn) => {
+        // Use isSquareUnderAttack to determine if the king's square is under attack
         return isSquareUnderAttack(row, col, !isWhiteKing);
     };
+
+    // Add this test function right after the ChessBoard component definition
+    const testCheckBlocking = () => {
+        // Start with initial position
+        const initialPosition = [
+            ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+            ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+            Array(8).fill(''),
+            Array(8).fill(''),
+            Array(8).fill(''),
+            Array(8).fill(''),
+            ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+            ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+        ];
+
+        setBoard(initialPosition);
+        setIsWhiteTurn(true);
+
+        // Make the moves to reach the test position
+        const makeMove = (fromRow, fromCol, toRow, toCol) => {
+            const newBoard = board.map(row => [...row]);
+            const piece = newBoard[fromRow][fromCol];
+            newBoard[toRow][toCol] = piece;
+            newBoard[fromRow][fromCol] = '';
+            setBoard(newBoard);
+            setIsWhiteTurn(!isWhiteTurn);
+        };
+
+        // Execute the moves: 1. e4 d5 2. Bb5+
+    
+
+        // Test the blocking moves
+        const testMoves = [
+            { from: [1, 2], to: [2, 2], piece: 'pawn c6' },    // c7-c6
+            { from: [0, 1], to: [2, 2], piece: 'knight Nc6' }, // Nb8-c6
+            { from: [0, 2], to: [1, 3], piece: 'bishop Bd7' }, // Bc8-d7
+            { from: [0, 3], to: [1, 3], piece: 'queen Qd7' }   // Qd8-d7
+        ];
+
+        console.log("Testing check blocking moves:");
+        let passedTests = 0;
+        let totalTests = testMoves.length;
+
+        testMoves.forEach(move => {
+            const fromPiece = board[move.from[0]][move.from[1]];
+            const isValid = isValidMove(move.from[0], move.from[1], move.to[0], move.to[1]);
+            console.log(`Testing ${move.piece}:`);
+            console.log(`- From: [${move.from}] piece: ${fromPiece}`);
+            console.log(`- To: [${move.to}]`);
+            console.log(`- Result: ${isValid ? 'PASS' : 'FAIL'}`);
+            if (isValid) passedTests++;
+        });
+
+        console.log(`\nTest Results: ${passedTests}/${totalTests} blocking moves valid`);
+        return passedTests === totalTests;
+    };
+
+    // Add this to your component to run the test
+    useEffect(() => {
+        // Run the test when component mounts
+        const testResult = testCheckBlocking();
+        console.log('Check blocking test complete:', testResult ? 'PASSED' : 'FAILED');
+    }, []);
 
     return (
         <div className='chess-board-container'>
@@ -289,7 +594,7 @@ const ChessBoard = ({ onMove }) => {
                             <div 
                                 key={colIndex} 
                                 className={`chess-board-cell ${
-                                    (rowIndex + colIndex) % 2 === 0 ? 'black' : 'white'
+                                    (rowIndex + colIndex) % 2 === 0 ? 'white' : 'black'
                                 } ${selectedPiece?.row === rowIndex && selectedPiece?.col === colIndex ? 'selected' : ''}`}
                                 onClick={() => handleCellClick(rowIndex, colIndex)}
                             >
