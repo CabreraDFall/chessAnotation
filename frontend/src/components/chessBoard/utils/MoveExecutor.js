@@ -1,3 +1,5 @@
+import { PawnPromotionService } from './PawnPromotionService';
+
 export class MoveExecutor {
     static executeMove(fromRow, fromCol, toRow, toCol, gameState) {
         const piece = gameState.board[fromRow][fromCol];
@@ -8,11 +10,6 @@ export class MoveExecutor {
             to: { row: toRow, col: toCol }
         });
 
-        // Execute castling if applicable
-        if (this.isCastling(piece, fromCol, toCol)) {
-            this.executeCastling(gameState.board, fromRow, toCol);
-        }
-
         // Execute en passant if applicable
         if (this.isEnPassant(piece, fromCol, toCol, gameState)) {
             this.executeEnPassant(gameState.board, fromRow, toCol);
@@ -22,8 +19,15 @@ export class MoveExecutor {
         gameState.board[toRow][toCol] = piece;
         gameState.board[fromRow][fromCol] = null;
 
+        // Check for pawn promotion
         if (this.isPawnPromotion(piece, toRow)) {
+            console.log('Promoting pawn at:', toRow, toCol);
             this.executePawnPromotion(gameState.board, toRow, toCol, piece.color);
+        }
+
+        // Execute castling if applicable (after main move)
+        if (this.isCastling(piece, fromCol, toCol)) {
+            this.executeCastling(gameState.board, fromRow, toCol);
         }
 
         // Record the move
@@ -69,15 +73,10 @@ export class MoveExecutor {
     }
 
     static isPawnPromotion(piece, toRow) {
-        return piece?.notation === '' && (toRow === 0 || toRow === 7);
+        return PawnPromotionService.shouldPromote(piece, toRow);
     }
 
     static executePawnPromotion(board, row, col, color) {
-        // Default promote to Queen
-        board[row][col] = {
-            color: color,
-            symbol: color === 'white' ? '♕' : '♛',
-            notation: 'Q'
-        };
+        PawnPromotionService.promotePawn(board, row, col, color, 'Q');
     }
 } 

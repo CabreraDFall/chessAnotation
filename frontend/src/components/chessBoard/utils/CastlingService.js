@@ -1,3 +1,5 @@
+import { CheckService } from './CheckService';
+
 export class CastlingService {
     static canCastle(gameState, fromRow, fromCol, toRow, toCol) {
         const piece = gameState.board[fromRow][fromCol];
@@ -28,7 +30,7 @@ export class CastlingService {
         
         // Check if king is in check
         const opponentColor = piece.color === 'white' ? 'black' : 'white';
-        if (gameState.isSquareUnderAttack(row, 4, opponentColor)) {
+        if (CheckService.isSquareUnderAttack(gameState, row, 4, opponentColor)) {
             console.log('King is in check, cannot castle');
             return false;
         }
@@ -65,8 +67,8 @@ export class CastlingService {
         
         // Check if path squares are under attack
         const opponentColor = color === 'white' ? 'black' : 'white';
-        const pathUnderAttack = gameState.isSquareUnderAttack(row, 5, opponentColor) ||
-                               gameState.isSquareUnderAttack(row, 6, opponentColor);
+        const pathUnderAttack = CheckService.isSquareUnderAttack(gameState, row, 5, opponentColor) ||
+                               CheckService.isSquareUnderAttack(gameState, row, 6, opponentColor);
         
         if (pathUnderAttack) {
             console.log('Path squares under attack for kingside castle');
@@ -93,8 +95,8 @@ export class CastlingService {
         
         // Check if path squares are under attack
         const opponentColor = color === 'white' ? 'black' : 'white';
-        const pathUnderAttack = gameState.isSquareUnderAttack(row, 2, opponentColor) ||
-                               gameState.isSquareUnderAttack(row, 3, opponentColor);
+        const pathUnderAttack = CheckService.isSquareUnderAttack(gameState, row, 2, opponentColor) ||
+                               CheckService.isSquareUnderAttack(gameState, row, 3, opponentColor);
         
         if (pathUnderAttack) {
             console.log('Path squares under attack for queenside castle');
