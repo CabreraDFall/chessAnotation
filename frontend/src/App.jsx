@@ -25,7 +25,7 @@ function App() {
                 </div>
                 <UserProfile />
             </div>
-            <ChessBoard onMove={handleMove} />
+            <ChessBoard onMove={handleMove}/>
             <Anotation moves={gameMoves} />
         </>
     );

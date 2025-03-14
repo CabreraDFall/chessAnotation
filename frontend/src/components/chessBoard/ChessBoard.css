@@ -46,3 +46,12 @@
 .black-piece {
     color: black;
 }
+
+.turn-indicator {
+    font-size: 1.2em;
+    text-align: center;
+    padding: 10px;
+    background-color: #2d2d44;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
