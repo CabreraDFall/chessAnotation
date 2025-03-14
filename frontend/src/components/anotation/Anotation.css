@@ -36,7 +36,9 @@
 }
 
 .move {
-    color: #fff;
+    font-family: "Arial Unicode MS", "Segoe UI Symbol", sans-serif;
+    font-size: 1.1em;
+    margin: 0 8px;
 }
 
 .symbols-section {
