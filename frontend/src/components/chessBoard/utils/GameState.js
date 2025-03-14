@@ -14,12 +14,14 @@ export class GameState {
         this.board = board.map(row => [...row]);
     }
 
-    isSquareUnderAttack(row, col, byWhite) {
-        for (let fromRow = 0; fromRow < 8; fromRow++) {
-            for (let fromCol = 0; fromCol < 8; fromCol++) {
-                const piece = this.board[fromRow][fromCol];
-                if (piece && piece.color === (byWhite ? 'white' : 'black')) {
-                    if (piece.isValidMove(fromRow, fromCol, row, col, this.board, this)) {
+    isSquareUnderAttack(row, col, byColor) {
+        console.log(`Checking if square ${row},${col} is under attack by ${byColor}`);
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const piece = this.board[r][c];
+                if (piece && piece.color === byColor) {
+                    if (piece.isValidMove(r, c, row, col, this.board, this)) {
+                        console.log(`Square ${row},${col} is under attack by ${piece.notation} at ${r},${c}`);
                         return true;
                     }
                 }

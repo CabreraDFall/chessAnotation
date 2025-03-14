@@ -44,12 +44,14 @@ export class MoveExecutor {
     }
 
     static executeCastling(board, row, toCol) {
-        // Move rook for castling
-        if (toCol === 6) { // Kingside
-            board[row][5] = board[row][7];
+        // Kingside castling
+        if (toCol === 6) {
+            board[row][5] = board[row][7]; // Move rook
             board[row][7] = null;
-        } else if (toCol === 2) { // Queenside
-            board[row][3] = board[row][0];
+        } 
+        // Queenside castling
+        else if (toCol === 2) {
+            board[row][3] = board[row][0]; // Move rook
             board[row][0] = null;
         }
     }
