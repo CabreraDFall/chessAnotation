@@ -1,6 +1,8 @@
 import './Anotation.css';
 
 const Anotation = ({ moves = [] }) => {
+
+    //Just for testing
     // Convert piece letter to symbol
     const pieceToSymbol = {
         'K': '♚',
