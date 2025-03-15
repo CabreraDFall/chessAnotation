@@ -90,10 +90,14 @@ const ChessBoard = ({ onMove }) => {
                     newGameState
                 );
 
-                const currentColor = newGameState.isWhiteTurn ? 'black' : 'white';
-                if (CheckService.isKingInCheck(newGameState, currentColor)) {
-                    CheckService.isCheckmate(newGameState, currentColor);
-                }
+                // Get the opponent's color
+                const opponentColor = newGameState.isWhiteTurn ? 'black' : 'white';
+                
+                // Check if the move puts opponent in check
+                const isCheck = CheckService.isKingInCheck(newGameState, opponentColor);
+                
+                // If in check, check for checkmate
+                const isCheckmate = isCheck && CheckService.isCheckmate(newGameState, opponentColor);
 
                 newGameState.isWhiteTurn = !newGameState.isWhiteTurn;
                 setGameState(newGameState);
@@ -101,7 +105,13 @@ const ChessBoard = ({ onMove }) => {
                 if (onMove) {
                     const notation = toChessNotation(selectedPiece.row, selectedPiece.col) + 
                                    toChessNotation(rowIndex, colIndex);
-                    onMove(notation, newGameState.board, moveResult.isCapture);
+                    
+                    const piece = gameState.board[selectedPiece.row][selectedPiece.col];
+                    onMove(notation, newGameState.board, moveResult.isCapture, {
+                        ...gameState,
+                        isCheck,
+                        isCheckmate
+                    });
                 }
             }
             setSelectedPiece(null);
