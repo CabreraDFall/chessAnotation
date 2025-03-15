@@ -15,13 +15,11 @@ export class GameState {
     }
 
     isSquareUnderAttack(row, col, byColor) {
-        console.log(`Checking if square ${row},${col} is under attack by ${byColor}`);
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
                 const piece = this.board[r][c];
                 if (piece && piece.color === byColor) {
                     if (piece.isValidMove(r, c, row, col, this.board, this)) {
-                        console.log(`Square ${row},${col} is under attack by ${piece.notation} at ${r},${c}`);
                         return true;
                     }
                 }

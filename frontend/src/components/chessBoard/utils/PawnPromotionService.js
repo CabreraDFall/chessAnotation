@@ -9,14 +9,11 @@ export class PawnPromotionService {
 
     static promotePawn(board, row, col, color, pieceType = 'Q') {
         if (!this.PROMOTION_PIECES.includes(pieceType)) {
-            console.error('Invalid promotion piece type:', pieceType);
-            pieceType = 'Q'; // Default to Queen if invalid type
+            pieceType = 'Q';
         }
 
-        // Create a new piece using PieceFactory
         const newPiece = PieceFactory.createPiece(pieceType, color);
         if (!newPiece) {
-            console.error('Failed to create promotion piece');
             return;
         }
 

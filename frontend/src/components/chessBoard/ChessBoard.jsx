@@ -59,86 +59,50 @@ const ChessBoard = ({ onMove }) => {
 
     // Update handleCellClick to check for check conditions
     const handleCellClick = (rowIndex, colIndex) => {
-        console.log('Cell clicked:', {
-            position: { row: rowIndex, col: colIndex },
-            selectedPiece,
-            currentTurn: gameState.isWhiteTurn ? 'white' : 'black'
-        });
-
         if (!selectedPiece) {
             const piece = gameState.board[rowIndex][colIndex];
-            console.log('Attempting to select piece:', piece);
             
             if (piece && piece.color === (gameState.isWhiteTurn ? 'white' : 'black')) {
-                console.log('Piece selected:', piece);
                 setSelectedPiece({ row: rowIndex, col: colIndex });
-            } else {
-                console.log('Invalid piece selection:', {
-                    piece,
-                    isCorrectTurn: piece?.color === (gameState.isWhiteTurn ? 'white' : 'black')
-                });
             }
         } else {
-            console.log('Attempting move:', {
-                from: selectedPiece,
-                to: { row: rowIndex, col: colIndex }
-            });
-
-            if (MoveValidator.isValidMove(
+            const moveResult = MoveValidator.isValidMove(
                 selectedPiece.row,
                 selectedPiece.col,
                 rowIndex,
                 colIndex,
                 gameState
-            )) {
-                console.log('Move validated, executing...');
-                
-                // Create a new game state BEFORE executing the move
+            );
+
+            if (moveResult.valid) {
                 const newGameState = new GameState();
-                // Initialize the new game state with a deep copy of the current board
                 newGameState.board = gameState.board.map(row => [...row]);
                 newGameState.isWhiteTurn = gameState.isWhiteTurn;
                 newGameState.moveHistory = [...gameState.moveHistory];
                 newGameState.castlingRights = JSON.parse(JSON.stringify(gameState.castlingRights));
                 newGameState.enPassantTarget = gameState.enPassantTarget;
 
-                // Execute the move on the new game state
                 MoveExecutor.executeMove(
                     selectedPiece.row,
                     selectedPiece.col,
                     rowIndex,
                     colIndex,
-                    newGameState  // Use newGameState instead of gameState
+                    newGameState
                 );
 
-                // Check for check/checkmate
                 const currentColor = newGameState.isWhiteTurn ? 'black' : 'white';
                 if (CheckService.isKingInCheck(newGameState, currentColor)) {
-                    console.log(`${currentColor} king is in check!`);
-                    if (CheckService.isCheckmate(newGameState, currentColor)) {
-                        console.log(`Checkmate! ${currentColor} loses!`);
-                    }
+                    CheckService.isCheckmate(newGameState, currentColor);
                 }
 
-                // Update the turn after the move
                 newGameState.isWhiteTurn = !newGameState.isWhiteTurn;
-
-                console.log('New game state:', {
-                    isWhiteTurn: newGameState.isWhiteTurn,
-                    moveCount: newGameState.moveHistory.length,
-                    board: newGameState.board
-                });
-
                 setGameState(newGameState);
                 
                 if (onMove) {
                     const notation = toChessNotation(selectedPiece.row, selectedPiece.col) + 
                                    toChessNotation(rowIndex, colIndex);
-                    console.log('Move notation:', notation);
-                    onMove(notation);
+                    onMove(notation, newGameState.board, moveResult.isCapture);
                 }
-            } else {
-                console.log('Invalid move attempted');
             }
             setSelectedPiece(null);
         }

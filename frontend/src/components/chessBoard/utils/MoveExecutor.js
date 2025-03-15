@@ -3,12 +3,6 @@ import { PawnPromotionService } from './PawnPromotionService';
 export class MoveExecutor {
     static executeMove(fromRow, fromCol, toRow, toCol, gameState) {
         const piece = gameState.board[fromRow][fromCol];
-        
-        console.log('Executing move:', {
-            piece,
-            from: { row: fromRow, col: fromCol },
-            to: { row: toRow, col: toCol }
-        });
 
         // Execute en passant if applicable
         if (this.isEnPassant(piece, fromCol, toCol, gameState)) {
@@ -21,7 +15,6 @@ export class MoveExecutor {
 
         // Check for pawn promotion
         if (this.isPawnPromotion(piece, toRow)) {
-            console.log('Promoting pawn at:', toRow, toCol);
             this.executePawnPromotion(gameState.board, toRow, toCol, piece.color);
         }
 
@@ -32,11 +25,6 @@ export class MoveExecutor {
 
         // Record the move
         gameState.recordMove(piece, fromRow, fromCol, toRow, toCol);
-
-        console.log('Move executed:', {
-            newPosition: gameState.board[toRow][toCol],
-            oldPosition: gameState.board[fromRow][fromCol]
-        });
     }
 
     static createNewBoard(board) {

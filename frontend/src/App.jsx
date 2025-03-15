@@ -9,9 +9,11 @@ import { useState } from 'react';
 
 function App() {
     const [gameMoves, setGameMoves] = useState([]);
+    const [boardState, setBoardState] = useState(null);
 
-    const handleMove = (move) => {
-        setGameMoves(prevMoves => [...prevMoves, move]);
+    const handleMove = (move, newBoardState, isCapture) => {
+        setGameMoves(prevMoves => [...prevMoves, { notation: move, isCapture }]);
+        setBoardState(newBoardState);
     };
 
     return (
@@ -26,7 +28,7 @@ function App() {
                 <UserProfile />
             </div>
             <ChessBoard onMove={handleMove}/>
-            <Anotation moves={gameMoves} />
+            <Anotation moves={gameMoves} boardState={boardState} />
         </>
     );
 }

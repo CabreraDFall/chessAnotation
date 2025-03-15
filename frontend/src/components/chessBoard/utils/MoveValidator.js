@@ -1,56 +1,51 @@
 export class MoveValidator {
     static isValidMove(fromRow, fromCol, toRow, toCol, gameState) {
         const piece = gameState.board[fromRow][fromCol];
-        
-        console.log('Validating move:', {
-            piece,
-            from: { row: fromRow, col: fromCol },
-            to: { row: toRow, col: toCol }
-        });
+        const targetPiece = gameState.board[toRow][toCol];
 
         if (!piece) {
-            console.log('No piece at source position');
-            return false;
+            return { valid: false, isCapture: false };
         }
 
         // Check if it's the correct turn
         if ((gameState.isWhiteTurn && piece.color !== 'white') || 
             (!gameState.isWhiteTurn && piece.color !== 'black')) {
-            console.log('Wrong turn');
-            return false;
+            return { valid: false, isCapture: false };
         }
 
         // Check destination square for same color piece
-        const targetPiece = gameState.board[toRow][toCol];
         if (targetPiece && targetPiece.color === piece.color) {
-            console.log('Cannot capture own piece');
-            return false;
+            return { valid: false, isCapture: false };
         }
 
         // Check if king is in check
         if (this.isKingInCheck(gameState, piece.color)) {
-            console.log('King is in check, validating defensive move');
             return this.isValidDefensiveMove(fromRow, fromCol, toRow, toCol, gameState);
         }
 
         // Basic validation for normal moves
         if (!this.isWithinBounds(toRow, toCol)) {
-            console.log('Move out of bounds');
-            return false;
+            return { valid: false, isCapture: false };
         }
 
         if (this.isCapturingSameColor(piece, gameState.board[toRow][toCol])) {
-            console.log('Cannot capture own piece');
-            return false;
+            return { valid: false, isCapture: true };
         }
 
         // Check if move would put own king in check
         if (this.moveExposesKing(fromRow, fromCol, toRow, toCol, gameState)) {
-            console.log('Move would expose king to check');
-            return false;
+            return { valid: false, isCapture: false };
         }
 
-        return piece.isValidMove(fromRow, fromCol, toRow, toCol, gameState.board, gameState);
+        if (piece.isValidMove(fromRow, fromCol, toRow, toCol, gameState.board, gameState)) {
+            return {
+                valid: true,
+                isCapture: targetPiece !== null || 
+                          (piece.notation === 'P' && fromCol !== toCol) // For en passant
+            };
+        }
+
+        return { valid: false, isCapture: false };
     }
 
     static isValidDefensiveMove(fromRow, fromCol, toRow, toCol, gameState) {
@@ -65,34 +60,29 @@ export class MoveValidator {
 
         // Check if the move resolves the check
         if (this.isKingInCheck(tempGameState, piece.color)) {
-            console.log('Move does not resolve check');
-            return false;
+            return { valid: false, isCapture: false };
         }
 
         // Verify if the move is one of three valid defensive options:
         // 1. Move the king to a safe square
         if (piece.notation === 'K') {
-            console.log('Attempting to move king to safety');
-            return piece.isValidMove(fromRow, fromCol, toRow, toCol, gameState.board, gameState);
+            return piece.isValidMove(fromRow, fromCol, toRow, toCol, gameState.board, gameState) ? { valid: true, isCapture: false } : { valid: false, isCapture: false };
         }
 
         // 2. Capture the attacking piece
         const attackingPieces = this.findAttackingPieces(gameState, piece.color);
         for (const attacker of attackingPieces) {
             if (toRow === attacker.row && toCol === attacker.col) {
-                console.log('Attempting to capture attacking piece');
-                return piece.isValidMove(fromRow, fromCol, toRow, toCol, gameState.board, gameState);
+                return piece.isValidMove(fromRow, fromCol, toRow, toCol, gameState.board, gameState) ? { valid: true, isCapture: true } : { valid: false, isCapture: false };
             }
         }
 
         // 3. Block the attack path
         if (this.isBlockingCheck(fromRow, fromCol, toRow, toCol, gameState, attackingPieces)) {
-            console.log('Attempting to block check');
-            return piece.isValidMove(fromRow, fromCol, toRow, toCol, gameState.board, gameState);
+            return piece.isValidMove(fromRow, fromCol, toRow, toCol, gameState.board, gameState) ? { valid: true, isCapture: false } : { valid: false, isCapture: false };
         }
 
-        console.log('Move does not defend against check');
-        return false;
+        return { valid: false, isCapture: false };
     }
 
     static findAttackingPieces(gameState, defendingColor) {
@@ -164,7 +154,6 @@ export class MoveValidator {
                 const piece = gameState.board[row][col];
                 if (piece && piece.color === attackingColor) {
                     if (piece.isValidMove(row, col, targetRow, targetCol, gameState.board, gameState)) {
-                        console.log(`Square ${targetRow},${targetCol} is under attack by ${piece.notation} at ${row},${col}`);
                         return true;
                     }
                 }
